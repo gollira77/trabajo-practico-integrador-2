@@ -1,12 +1,13 @@
 import express from 'express';
-import { getComments, createComment, updateComment, deleteComment } from '../controllers/Comment.Controller.js';
-import { validate, commentValidation, validateMongoId } from '../middlewares/validators.js';
+import { authMiddleware, ownerOrAdminMiddleware } from '../middlewares/auth.middleware.js';
+import {createComment, getCommentsByArticle, getMyComments, updateComment, deleteComment} from '../controllers/Comment.controller.js';
 
 const router = express.Router();
 
-router.get('/', getComments);
-router.post('/', validate(commentValidation), createComment);
-router.put('/:id', validateMongoId('id'), validate(commentValidation), updateComment);
-router.delete('/:id', validateMongoId('id'), deleteComment);
+router.post('/', authMiddleware, createComment);
+router.get('/article/:articleId', authMiddleware, getCommentsByArticle);
+router.get('/my', authMiddleware, getMyComments);
+router.put('/:id', authMiddleware, ownerOrAdminMiddleware, updateComment);
+router.delete('/:id', authMiddleware, ownerOrAdminMiddleware, deleteComment);
 
 export default router;

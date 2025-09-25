@@ -1,12 +1,13 @@
 import express from 'express';
-import { getTags, createTag, updateTag, deleteTag } from '../controllers/Tag.Controller.js';
-import { validate, tagValidation, validateMongoId } from '../middlewares/validators.js';
+import { authMiddleware, adminMiddleware } from '../middlewares/auth.middleware.js';
+import {createTag, getAllTags, getTagById, updateTag, deleteTag} from '../controllers/Tag.controller.js';
 
 const router = express.Router();
 
-router.get('/', getTags);
-router.post('/', validate(tagValidation), createTag);
-router.put('/:id', validateMongoId('id'), validate(tagValidation), updateTag);
-router.delete('/:id', validateMongoId('id'), deleteTag);
+router.post('/', authMiddleware, adminMiddleware, createTag);
+router.get('/', authMiddleware, getAllTags);
+router.get('/:id', authMiddleware, getTagById);
+router.put('/:id', authMiddleware, adminMiddleware, updateTag);
+router.delete('/:id', authMiddleware, adminMiddleware, deleteTag);
 
 export default router;

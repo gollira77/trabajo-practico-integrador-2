@@ -1,12 +1,14 @@
 import express from 'express';
-import { getArticles, createArticle, updateArticle, deleteArticle } from '../controllers/Article.Controller.js';
-import { validate, articleValidation, validateMongoId } from '../middlewares/validators.js';
+import { authMiddleware, ownerOrAdminMiddleware } from '../middlewares/auth.middleware.js';
+import {createArticle, getAllArticles, getArticleById, getMyArticles, updateArticle, deleteArticle} from '../controllers/Article.controller.js';
 
 const router = express.Router();
 
-router.get('/', getArticles);
-router.post('/', validate(articleValidation), createArticle);
-router.put('/:id', validateMongoId('id'), validate(articleValidation), updateArticle);
-router.delete('/:id', validateMongoId('id'), deleteArticle);
+router.post('/', authMiddleware, createArticle);
+router.get('/', authMiddleware, getAllArticles);
+router.get('/my', authMiddleware, getMyArticles);
+router.get('/:id', authMiddleware, getArticleById);
+router.put('/:id', authMiddleware, ownerOrAdminMiddleware, updateArticle);
+router.delete('/:id', authMiddleware, ownerOrAdminMiddleware, deleteArticle);
 
 export default router;
