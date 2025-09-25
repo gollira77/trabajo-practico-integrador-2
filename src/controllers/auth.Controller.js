@@ -1,80 +1,76 @@
 import User from '../models/User.js';
-import { generateToken } from '../helpers/jwt.js';
 import { comparePassword } from '../helpers/bcrypt.js';
+import { generateToken } from '../helpers/jwt.js';
 
 export const register = async (req, res) => {
   try {
-    const { email, password, profile } = req.body;
+    const { username, email, password, profile } = req.body;
 
-    // Verificar si el email ya existe
-    const existingUser = await User.findOne({ email });
-    if (existingUser) return res.status(400).json({ message: 'El email ya está registrado' });
+    const existingUser = await User.findOne({ $or: [{ email }, { username }] });
+    if (existingUser) return res.status(400).json({ message: 'Usuario o email ya registrados' });
 
-    const newUser = new User({ email, password, profile });
+    const newUser = new User({ username, email, password, profile });
     await newUser.save();
 
-    // Generar token
-    const token = generateToken({ id: newUser._id, role: newUser.role });
-
-    // Enviar cookie httpOnly
-    res
-      .cookie('token', token, { httpOnly: true, secure: false, maxAge: 3600000 })
-      .status(201)
-      .json({ message: 'Usuario registrado correctamente', user: newUser });
+    res.status(201).json({ message: 'Usuario registrado con éxito' });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(500).json({ message: 'Error al registrar usuario', error: error.message });
   }
 };
 
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-
     const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: 'Email o contraseña incorrectos' });
+    if (!user) return res.status(400).json({ message: 'Credenciales inválidas' });
 
-    const isMatch = await comparePassword(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: 'Email o contraseña incorrectos' });
+    const match = await comparePassword(password, user.password);
+    if (!match) return res.status(400).json({ message: 'Credenciales inválidas' });
 
     const token = generateToken({ id: user._id, role: user.role });
-
     res
-      .cookie('token', token, { httpOnly: true, secure: false, maxAge: 3600000 })
+      .cookie('token', token, { httpOnly: true, secure: false, sameSite: 'strict' })
       .status(200)
-      .json({ message: 'Login exitoso', user });
+      .json({ message: 'Login exitoso' });
   } catch (error) {
-    res.status(500).json({ message: 'Error iniciando sesión' });
+    res.status(500).json({ message: 'Error al iniciar sesión', error: error.message });
   }
 };
 
-export const logout = async (req, res) => {
-  res.clearCookie('token').status(200).json({ message: 'Logout exitoso' });
+export const logout = (req, res) => {
+  try {
+    res.clearCookie('token');
+    res.status(200).json({ message: 'Sesión cerrada correctamente' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error al cerrar sesión', error: error.message });
+  }
 };
 
-// Perfil GET
 export const getProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select('-password -isDeleted');
+    const user = await User.findById(req.user.id).select('-password');
     if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
+
     res.status(200).json(user);
   } catch (error) {
-    res.status(500).json({ message: 'Error obteniendo perfil' });
+    res.status(500).json({ message: 'Error al obtener perfil', error: error.message });
   }
 };
 
-// Perfil PUT
 export const updateProfile = async (req, res) => {
   try {
-    const { profile, email } = req.body;
-    const user = await User.findById(req.user.id);
+    const { profile } = req.body;
+
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { profile },
+      { new: true }
+    ).select('-password');
+
     if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
 
-    if (email) user.email = email;
-    if (profile) user.profile = profile;
-
-    await user.save();
-    res.status(200).json({ message: 'Perfil actualizado correctamente', user });
+    res.status(200).json({ message: 'Perfil actualizado con éxito', user });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(500).json({ message: 'Error al actualizar perfil', error: error.message });
   }
 };
