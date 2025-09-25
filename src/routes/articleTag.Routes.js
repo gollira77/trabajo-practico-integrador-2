@@ -1,5 +1,6 @@
 import express from 'express';
-import { authMiddleware, ownerOrAdminMiddleware } from '../middlewares/auth.middleware.js';
+import { authMiddleware} from '../middlewares/authMiddleware.js';
+import { ownerOrAdminMiddleware } from '../middlewares/ownerOrAdminMiddleware.js';
 import {addTagToArticle, removeTagFromArticle} from '../controllers/articleTag.controller.js';
 
 const router = express.Router();
